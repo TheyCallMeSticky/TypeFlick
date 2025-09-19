@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.3.1"
+  },
+  "scripts": {
+    "format:js": "prettier --write \"**/*.{js,jsx,ts,tsx,md,json}\"",
+    "format:py": "black . && isort .",
+    "format": "pnpm run format:js && pnpm run format:py"
+  }
+}

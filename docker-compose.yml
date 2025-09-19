@@ -1,0 +1,180 @@
+volumes:
+  postgres_data:
+  user_files: # {audio,images,videos} partagés
+  artists_postgres_data: # Base de données dédiée aux artistes
+
+services:
+  #─────────────────────────────── POSTGRES PRINCIPAL
+  postgres:
+    container_name: typeflick-db
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  #─────────────────────────────── POSTGRES ARTISTS
+  artists-postgres:
+    container_name: artists-db
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${ARTISTS_POSTGRES_DB}
+      POSTGRES_USER: ${ARTISTS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ARTISTS_POSTGRES_PASSWORD}
+    ports:
+      - "54323:5432"
+    volumes:
+      - artists_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ARTISTS_POSTGRES_USER} -d ${ARTISTS_POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  #─────────────────────────────── REDIS
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  #─────────────────────────────── API PYTHON (FastAPI)
+  python-api:
+    container_name: typeflick-core-api
+    build:
+      context: ./TypeFlick-core
+    ports:
+      - "8000:8000"
+    volumes:
+      - user_files:/app/files
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      AUDIO_DIR: ${AUDIO_DIR}
+      IMAGE_DIR: ${IMAGE_DIR}
+      OUTPUT_DIR: ${OUTPUT_DIR}
+    depends_on:
+      - redis
+
+  #─────────────────────────────── WORKER PYTHON (RQ)
+  python-worker:
+    build:
+      context: ./TypeFlick-core
+    command: python worker.py # lance le worker
+    volumes:
+      - user_files:/app/files
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      AUDIO_DIR: ${AUDIO_DIR}
+      IMAGE_DIR: ${IMAGE_DIR}
+      OUTPUT_DIR: ${OUTPUT_DIR}
+    depends_on:
+      - redis
+
+  #─────────────────────────────── ARTISTS COLLECTOR API
+  artists-collector:
+    container_name: artists-collector-api
+    build:
+      context: ./artists-collector
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://${ARTISTS_POSTGRES_USER}:${ARTISTS_POSTGRES_PASSWORD}@artists-postgres:5432/${ARTISTS_POSTGRES_DB}
+      REDIS_URL: ${REDIS_URL}/1
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      # YouTube API Keys - only non-empty values will be passed
+      YOUTUBE_API_KEY_1: ${YOUTUBE_API_KEY_1:-}
+      YOUTUBE_API_KEY_2: ${YOUTUBE_API_KEY_2:-}
+      YOUTUBE_API_KEY_3: ${YOUTUBE_API_KEY_3:-}
+      YOUTUBE_API_KEY_4: ${YOUTUBE_API_KEY_4:-}
+      YOUTUBE_API_KEY_5: ${YOUTUBE_API_KEY_5:-}
+      YOUTUBE_API_KEY_6: ${YOUTUBE_API_KEY_6:-}
+      YOUTUBE_API_KEY_7: ${YOUTUBE_API_KEY_7:-}
+      YOUTUBE_API_KEY_8: ${YOUTUBE_API_KEY_8:-}
+      YOUTUBE_API_KEY_9: ${YOUTUBE_API_KEY_9:-}
+      YOUTUBE_API_KEY_10: ${YOUTUBE_API_KEY_10:-}
+      YOUTUBE_API_KEY_11: ${YOUTUBE_API_KEY_11:-}
+      YOUTUBE_API_KEY_12: ${YOUTUBE_API_KEY_12:-}
+      LOG_LEVEL: ${LOG_LEVEL}
+    depends_on:
+      artists-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./artists-collector/backups:/app/backups
+      - ./artists-collector/logs:/app/logs
+
+  #─────────────────────────────── ARTISTS DASHBOARD
+  artists-dashboard:
+    container_name: artists-dashboard
+    build:
+      context: ./artists-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      PYTHON_API_BASE: ${PYTHON_API_BASE}
+      NODE_ENV: ${NODE_ENV}
+    depends_on:
+      artists-collector:
+        condition: service_healthy
+    volumes:
+      - ./artists-dashboard:/app
+      - /app/node_modules
+      - /app/.next
+
+  #─────────────────────────────── NEXT.JS (dev hot-reload)
+  nextjs:
+    container_name: typeflick-site
+    build:
+      context: .
+      dockerfile: TypeFlick-site/Dockerfile
+    command: pnpm dev # hot-reload
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./TypeFlick-site:/app
+      - /app/node_modules
+      - user_files:/app/files
+    # env_file:
+      # - ./TypeFlick-site/.env  # Commented out - using main .env instead
+    environment:
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      METADATA_API_URL: ${METADATA_API_URL}
+      ARTISTS_API_URL: ${ARTISTS_API_URL}
+      ARTISTS_DASHBOARD_URL: ${ARTISTS_DASHBOARD_URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?err}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?err}
+      BASE_URL: ${BASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?err}
+    depends_on:
+      - postgres
+      - python-api
+
+  #─────────────────────────────── METADATA API
+  metadata-api:
+    container_name: metadata-api
+    build:
+      context: .
+      dockerfile: beat-metadata-api/Dockerfile
+    command: pnpm dev # hot-reload
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./beat-metadata-api:/app
+      - /app/node_modules
+    environment:
+      BASE_URL: http://localhost:3001
+      PORT: 3001

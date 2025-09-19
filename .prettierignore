@@ -1,0 +1,4 @@
+# dependencies / build outputs
+**/node_modules
+**/.next
+**/dist

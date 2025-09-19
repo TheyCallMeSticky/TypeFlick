@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────
+# TYPEFLICK MONO-REPO
+# ─────────────────────────────────────────────────────────────────
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Docker volumes data
+postgres_data/
+artists_postgres_data/
+user_files/
+
+# Docker override files
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# ─────────────────────────────────────────────────────────────────
+# LOGS & RUNTIME
+# ─────────────────────────────────────────────────────────────────
+
+# Application logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Backup files (keep structure)
+backups/*.sql
+backups/*.gz
+backups/*.tar.gz
+!backups/.gitkeep
+
+# ─────────────────────────────────────────────────────────────────
+# DEVELOPMENT
+# ─────────────────────────────────────────────────────────────────
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.stackdump
+
+# ─────────────────────────────────────────────────────────────────
+# DOCKER
+# ─────────────────────────────────────────────────────────────────
+
+# Docker build cache
+.docker/
+
+# Docker logs
+docker-logs/
+
+# ─────────────────────────────────────────────────────────────────
+# PROJECT SPECIFIC
+# ─────────────────────────────────────────────────────────────────
+
+# Keep project .gitignores intact
+!TypeFlick-site/.gitignore
+!artists-collector/.gitignore
+!artists-dashboard/.gitignore
+!beat-metadata-api/.gitignore
