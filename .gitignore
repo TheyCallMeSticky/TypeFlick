@@ -2,6 +2,15 @@
 # TYPEFLICK MONO-REPO
 # ─────────────────────────────────────────────────────────────────
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+
 # Environment files (keep .env.example)
 .env
 .env.local
