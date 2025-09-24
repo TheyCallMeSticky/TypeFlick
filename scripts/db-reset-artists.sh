@@ -40,12 +40,12 @@ fi
 # 1. Drop database
 echo "🗑️  Dropping database..."
 docker compose exec "$PG_CONTAINER" \
-  psql -U "$DB_USER" -p 5432 -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+  psql -U "$DB_USER" -d postgres -p 5432 -c "DROP DATABASE IF EXISTS ${DB_NAME} WITH (FORCE);"
 
 # 2. Re-create database
 echo "🆕 Creating fresh database..."
 docker compose exec "$PG_CONTAINER" \
-  psql -U "$DB_USER" -p 5432 -c "CREATE DATABASE ${DB_NAME};"
+  psql -U "$DB_USER" -d postgres -p 5432 -c "CREATE DATABASE ${DB_NAME};"
 
 echo "✅ Fresh artists database created."
 
@@ -62,4 +62,4 @@ fi
 echo "🎉 Artists database reset and initialized!"
 echo "   - Database: $DB_NAME"
 echo "   - Port: $DB_PORT" 
-echo "   - Sample data: 3 hip-hop artists loaded"
+echo "   - Base vide prête pour de vraies données"

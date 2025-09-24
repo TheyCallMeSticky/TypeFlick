@@ -81,11 +81,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8001:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       DATABASE_URL: postgresql://${ARTISTS_POSTGRES_USER}:${ARTISTS_POSTGRES_PASSWORD}@artists-postgres:5432/${ARTISTS_POSTGRES_DB}
       REDIS_URL: ${REDIS_URL}/1
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      # YouTube Configuration
+      YOUTUBE_MODE: ${YOUTUBE_MODE:-LIVE}
       # YouTube API Keys - only non-empty values will be passed
       YOUTUBE_API_KEY_1: ${YOUTUBE_API_KEY_1:-}
       YOUTUBE_API_KEY_2: ${YOUTUBE_API_KEY_2:-}
@@ -99,6 +102,10 @@ services:
       YOUTUBE_API_KEY_10: ${YOUTUBE_API_KEY_10:-}
       YOUTUBE_API_KEY_11: ${YOUTUBE_API_KEY_11:-}
       YOUTUBE_API_KEY_12: ${YOUTUBE_API_KEY_12:-}
+      # Extraction Settings
+      YOUTUBE_VIDEOS_PER_CHANNEL: ${YOUTUBE_VIDEOS_PER_CHANNEL:-50}
+      SPOTIFY_TRACKS_PER_PLAYLIST: ${SPOTIFY_TRACKS_PER_PLAYLIST:-100}
+      EXTRACTION_FREQUENCY_HOURS: ${EXTRACTION_FREQUENCY_HOURS:-24}
       LOG_LEVEL: ${LOG_LEVEL}
     depends_on:
       artists-postgres:
@@ -110,9 +117,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    volumes:
+    volumes:    
+      - ./artists-collector:/app
+      - /app/__pycache__  # Exclure le cache Python
       - ./artists-collector/backups:/app/backups
       - ./artists-collector/logs:/app/logs
+      - ./artists-collector/cache:/app/cache
 
   #─────────────────────────────── ARTISTS DASHBOARD
   artists-dashboard:

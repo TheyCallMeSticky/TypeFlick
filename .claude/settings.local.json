@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Read(//home/stkf/**)"
+      "Read(//home/stkf/**)",
+      "Bash(mkdir:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose restart:*)",
+      "Bash(python3 scripts/batch_extraction_report.py:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker restart:*)",
+      "Bash(env)",
+      "Bash(docker compose:*)",
+      "Bash(docker inspect:*)"
     ],
     "deny": [],
     "ask": []
